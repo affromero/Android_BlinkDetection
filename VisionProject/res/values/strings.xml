@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">EyeDetector</string>
+    <string name="Processing_prompt">Choose a ProcessingImage</string>
+ 
+    <string-array name="Preocessing_arrays">
+        <item>Equalization</item>
+        <item>TesisJuan</item>
+        <item>Lab+L+GaussianFilter</item>
+        <item>Lab+L+Eq+GaussianFilter</item>
+        <item>Lab+L+Eq+OtsuFilter</item>
+         <item>Lab+b+Eq</item>
+    </string-array>
+</resources>
