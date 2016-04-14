@@ -8,34 +8,34 @@ For each frame, let's say:
 
 1. Face detection - LBP it is performed:
 
-![](ScreeShots/face.png)
+![](ScreenShots/face.png)
 
 - Then changing ROI
 
-![](ScreeShots/face_cropped.png)
+![](ScreenShots/face_cropped.png)
 
 - Then both eyes are located according to geometry of the face
 
-![](ScreeShots/Eyes_Geometry.png)
+![](ScreenShots/Eyes_Geometry.png)
 
 
 - Now changing ROI for each eye
 Left Eye
-![](ScreeShots/Left_Eye.png)
+![](ScreenShots/Left_Eye.png)
 
 Right Eye
-![](ScreeShots/Right_Eye.png)
+![](ScreenShots/Right_Eye.png)
 
 2. Eye detection - Haar it is performed (Different detector for each one), and we got:
 
     Left Eye
-![](ScreeShots/Left_Eye_Haar.png)
+![](ScreenShots/Left_Eye_Haar.png)
 
     Right Eye
-![](ScreeShots/Right_Eye_Haar.png)
+![](ScreenShots/Right_Eye_Haar.png)
 
 3. Binary classification according to both eyes:
 
-![](ScreeShots/open.png)
+![](ScreenShots/open.png)
 
-![](ScreeShots/closed.png)
+![](ScreenShots/closed.png)

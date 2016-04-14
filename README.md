@@ -1,4 +1,5 @@
-# OpenCV-Projects has classification of Open/Closed eyes, based on OpenCV.
+## OpenCV-Projects 
+# it has code and APK for binary classification of Open/Closed eyes.
 
 This work develop 3 stages in order to classify Open/Closed Eyes.
 
@@ -20,6 +21,7 @@ For each frame, let's say:
 
 
 - Now changing ROI for each eye
+
 Left Eye
 ![](ScreenShots/Left_Eye.png)
 
