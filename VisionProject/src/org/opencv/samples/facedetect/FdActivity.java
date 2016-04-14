@@ -16,6 +16,7 @@ import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
+import org.opencv.imgproc.Imgproc;
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2;
 import org.opencv.objdetect.CascadeClassifier;
@@ -89,14 +90,19 @@ public class FdActivity extends Activity implements CvCameraViewListener2 {
 	private CameraBridgeViewBase mOpenCvCameraView;
 	
 	int AllTime = 30;
+	int drowsyTime = 1;
 	double frequency;
 	long timer;
 	int TotalFrames = 0;
 	int FrameFace = 0;
 	int FrameEyesOpen = 0;
 	int FrameEyesClosed = 0;
+	public int FrameClosedDrowsy = 0;
 	boolean flag = false;
-	
+	boolean flag_drowsy = false;
+	boolean drowsy = true;
+	long timer_drowsy;
+    int count_drowsy = 0;
 	MediaPlayer beep;
 	
     
@@ -270,10 +276,23 @@ public class FdActivity extends Activity implements CvCameraViewListener2 {
 	}
 
 	public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
+		if (drowsy){
+			timer_drowsy = Core.getTickCount();
+			drowsy = false;
+		}
+			
 		SetTimer();
 		mRgba = inputFrame.rgba();
 		mGray = inputFrame.gray();
 		TotalFrames++;
+		
+		boolean showing_drowsy = SetDrowsy();
+		if (showing_drowsy || count_drowsy != 0){
+			count_drowsy++;
+			Core.putText(mRgba, "ALERT!", new Point(mRgba.size().width/2, mRgba.size().height/2), Core.FONT_HERSHEY_SCRIPT_COMPLEX, 4, new Scalar(255,255,0),5);
+			if (count_drowsy>2){count_drowsy=0;}
+		}
+		
 		
 		if (mAbsoluteFaceSize == 0) {
 			int height = mGray.rows();
@@ -303,9 +322,8 @@ public class FdActivity extends Activity implements CvCameraViewListener2 {
 			
 			//Rectangle of the face
 			Rect RectOfFace = facesArray[i];
-		
-			
-			//Split two different regions for two eyes
+			//Split two different regions for two eyes			
+			///*
 			Rect eyearea_right = new Rect( RectOfFace.x + RectOfFace.width / 16 , 
 					(int) (RectOfFace.y + (RectOfFace.height / 4.5)) ,
 	                (RectOfFace.width - 2 * RectOfFace.width / 16) / 2, 
@@ -317,26 +335,64 @@ public class FdActivity extends Activity implements CvCameraViewListener2 {
 	                 (RectOfFace.width - 2 * RectOfFace.width / 16) / 2 , 
 	                 (int) (RectOfFace.height / 3.0)
 	                 );
+	        
+            //*/
+            //If you want to watch sub-matrix on display uncomment next and uncomment before
+            /*
+		    mRgba = mRgba.submat(RectOfFace);
+			Imgproc.resize(mRgba, mRgba, mGray.size());
+			//Split two different regions for two eyes			
+			
+			Rect eyearea_right = new Rect( mRgba.cols() / 16 , 
+					(int) ((mRgba.rows() / 4.5)) ,
+	                (mRgba.cols() - 2 * mRgba.cols() / 16) / 2, 
+	                (int) (mRgba.rows() / 3.0)
+	                );
+			
+	        Rect eyearea_left = new Rect(  mRgba.cols() / 16 + (  mRgba.cols() - 2 *  mRgba.cols() / 16 ) / 2 ,
+	                 (int) ((mRgba.rows() / 4.5)) , 
+	                 ( mRgba.cols() - 2 *  mRgba.cols() / 16) / 2 , 
+	                 (int) (mRgba.rows() / 3.0)
+	                 );
+	        
+            Core.rectangle(mRgba, eyearea_left.tl(), eyearea_left.br(),
+                    new Scalar(255, 0, 0, 255), 2);
+            Core.rectangle(mRgba, eyearea_right.tl(), eyearea_right.br(),
+                    new Scalar(255, 0, 0, 255), 2);
+            */
+            
 			FrameFace++;
 			//get_template function needs: classifier, area over perform classifier, and desired size of new template
-			templateR = get_template(mJavaDetectorEyeRight, eyearea_right, 40);
-			templateL = get_template(mJavaDetectorEyeLeft, eyearea_left, 40);
+			Rect rectR = get_template(mJavaDetectorEyeRight, eyearea_right);
 			
-			templateR_open = get_template(mJavaDetectorEyeOpen, eyearea_right, 40);
-			templateL_open = get_template(mJavaDetectorEyeOpen, eyearea_left, 40);
+			Rect rectL = get_template(mJavaDetectorEyeLeft, eyearea_left);
+			if (rectL.width==0 || rectL.height==0 || rectR.width==0 || rectR.height==0){continue;}
 			
+
+			
+			rectR = get_template(mJavaDetectorEyeOpen, rectR, new Size(1, 1), new Size(50,50));
+			templateR_open = mGray.submat(rectR);
+			
+			rectL = get_template(mJavaDetectorEyeOpen, rectL, new Size(1, 1), new Size(50,50));
+			templateL_open = mGray.submat(rectL);
+
+			/*
+			if (rectL.width>0){
+			    mRgba = mRgba.submat(rectR);
+				Imgproc.resize(mRgba, mRgba, mGray.size());
+			}
+			*/
 			
 			//match_eye 
-			HaarRE = match_eye(templateR); 
-			HaarLE = match_eye(templateL); 
 			HaarEyeOpen_R = match_eye(templateR_open); 
 			HaarEyeOpen_L = match_eye(templateL_open); 
 			
-			if(HaarRE && HaarLE && !HaarEyeOpen_R && !HaarEyeOpen_L){
+			if(!HaarEyeOpen_R && !HaarEyeOpen_L){
 				Core.putText(mRgba, "Closed", new Point(mRgba.size().width/18, mRgba.size().height/5), Core.FONT_HERSHEY_SCRIPT_COMPLEX, 4, new Scalar(0,255,0),5);
 				FrameEyesClosed++;
+				FrameClosedDrowsy++;
 			}
-			else if (HaarRE && HaarLE && HaarEyeOpen_R && HaarEyeOpen_L){
+			else if (HaarEyeOpen_R && HaarEyeOpen_L){
 				Core.putText(mRgba, "Open", new Point(mRgba.size().width/18, mRgba.size().height/5), Core.FONT_HERSHEY_SCRIPT_COMPLEX, 4, new Scalar(0,255,0),5);
 				FrameEyesOpen++;
 			}
@@ -345,8 +401,8 @@ public class FdActivity extends Activity implements CvCameraViewListener2 {
 		}
 		return mRgba;
 	}
-
-	private Mat get_template(CascadeClassifier clasificator, Rect RectAreaInterest, int size) {
+	
+	private Rect get_template(CascadeClassifier clasificator, Rect RectAreaInterest) {
 		Mat template = new Mat(); //Where is gonna be stored the eye detected data
 		Mat mROI = mGray.submat(RectAreaInterest); //Matrix which contain data of the whole eye area from geometry of face
 		MatOfRect eyes = new MatOfRect(); 
@@ -367,26 +423,57 @@ public class FdActivity extends Activity implements CvCameraViewListener2 {
 			Rect eyeDetected = eyesArray[i];
 			eyeDetected.x = RectAreaInterest.x + eyeDetected.x;
 			eyeDetected.y = RectAreaInterest.y + eyeDetected.y;
-			eye_only_rectangle = new Rect( (int) eyeDetected.tl().x , 
-					(int) (eyeDetected.tl().y + eyeDetected.height * 0.4) ,
-					(int) eyeDetected.width ,
-					(int) (eyeDetected.height * 0.6)
-					);
-			mROI = mGray.submat(eye_only_rectangle);
+
+			mROI = mGray.submat(eyeDetected);
 			mmG = Core.minMaxLoc(mROI);
 			
-			iris.x = mmG.minLoc.x + eye_only_rectangle.x;
-			iris.y = mmG.minLoc.y + eye_only_rectangle.y;
-			eye_template = new Rect((int) iris.x - size / 2, (int) iris.y - size / 2, size, size);
+			iris.x = mmG.minLoc.x + eyeDetected.x;
+			iris.y = mmG.minLoc.y + eyeDetected.y;
+			eye_template = new Rect((int) iris.x -  eyeDetected.width/2, (int) iris.y -  eyeDetected.height/2,  eyeDetected.width,  eyeDetected.height);
 
-			
-			//Convert it to a matrix so that can be manipulated
-			template = mGray.submat(eye_template);
 			//Imgproc.equalizeHist(template, template);
 			break;
 			//return template;
 		}
-		return template;
+		return eye_template;
+	}
+	
+
+	private Rect get_template(CascadeClassifier clasificator, Rect RectAreaInterest, Size min_size, Size max_size) {
+		Mat template = new Mat(); //Where is gonna be stored the eye detected data
+		Mat mROI = mGray.submat(RectAreaInterest); //Matrix which contain data of the whole eye area from geometry of face
+		MatOfRect eyes = new MatOfRect(); 
+		iris = new Point();
+		eye_template = new Rect();
+		//detectMultiScale(const Mat& image, vector<Rect>& objects, double scaleFactor=1.1, int minNeighbors=3, int flags=0, Size minSize=Size(), Size maxSize=Size())
+		clasificator.detectMultiScale(mROI, //Image which set classification. Needs to be of the type CV_8U
+				eyes, //List of rectangles where are stored possibles eyes detected 
+				1.01, //Scalefactor. How much the image is reduced at each image scale
+				2,    //MinNeighbors. Specify how many neighbors each candidate rectangle should have to retain it. 
+				Objdetect.CASCADE_FIND_BIGGEST_OBJECT | Objdetect.CASCADE_SCALE_IMAGE, //0 or 1.
+				min_size, //Minimum possible object size. Objects smaller than that are ignored.
+				max_size        //Maximum possible object size. Objects larger than that are ignored.
+		);
+
+		Rect[] eyesArray = eyes.toArray();
+		for (int i = 0; i < eyesArray.length;) {
+			Rect eyeDetected = eyesArray[i];
+			eyeDetected.x = RectAreaInterest.x + eyeDetected.x;
+			eyeDetected.y = RectAreaInterest.y + eyeDetected.y;
+
+			mROI = mGray.submat(eyeDetected);
+			mmG = Core.minMaxLoc(mROI);
+			
+			iris.x = mmG.minLoc.x + eyeDetected.x;
+			iris.y = mmG.minLoc.y + eyeDetected.y;
+			eye_template = new Rect((int) iris.x -  eyeDetected.width/2, (int) iris.y -  eyeDetected.height/2,  eyeDetected.width,  eyeDetected.height);
+
+			//Imgproc.equalizeHist(template, template);
+			break;
+
+			//return template;
+		}
+		return eye_template;
 	}
 	
 	private boolean match_eye(Mat mTemplate) {
@@ -472,5 +559,19 @@ public class FdActivity extends Activity implements CvCameraViewListener2 {
 		        });
 			flag = false;
 		}
+	}
+	
+	public boolean SetDrowsy(){
+		long newtimer = Core.getTickCount()-timer_drowsy;
+		frequency = Core.getTickFrequency();
+		flag_drowsy = false;
+		if(newtimer/frequency>drowsyTime){
+			timer_drowsy = Core.getTickCount();
+			if (FrameClosedDrowsy>2){
+				flag_drowsy = true;
+			}
+			FrameClosedDrowsy = 0;
+		}
+		return flag_drowsy;
 	}
 }
