@@ -1,13 +1,13 @@
 ## OpenCV-Projects 
 # it has code and APK for binary classification of Open/Closed eyes.
 
-This work develop 3 stages in order to classify Open/Closed Eyes.
+This work is developed in *3* stages in order to classify Open/Closed Eyes.
 
 For each frame, let's say:
 
 ![](ScreeShots/org.png)
 
-1. Face detection - LBP it is performed:
+1. Face detection - *LBP* it is performed:
 
 ![](ScreenShots/face.png)
 
@@ -28,7 +28,7 @@ Left Eye
 Right Eye
 ![](ScreenShots/Right_Eye.png)
 
-2. Eye detection - Haar it is performed (Different detector for each one), and we got:
+2. Eye detection - *Haar* it is performed (Different detector for each one), and we got:
 
     Left Eye
 ![](ScreenShots/Left_Eye_Haar.png)
